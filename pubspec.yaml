@@ -1,0 +1,13 @@
+name: funcfit
+description: >-
+  Fitting models with named parameters (free, frozen, limited, or related)
+  to data, on top of derivative-free minimization (Powell's method).
+version: 0.1.0
+repository: https://github.com/sczesla/funcfit
+
+environment:
+  sdk: ^3.5.0
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0
