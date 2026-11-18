@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:funcfit/minimize.dart';
+import 'package:funcfit/src/minimize/golden_section.dart';
 import 'dart:math';
 
 void main() {

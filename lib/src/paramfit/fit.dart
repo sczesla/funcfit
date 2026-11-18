@@ -7,8 +7,7 @@ import '../minimize/powell.dart';
 
 /// Result of [fit].
 class FitResult {
-  /// Creates a result; normally done by [fit].
-  FitResult(this.minimizerResult, Map<String, double> values)
+  FitResult._(this.minimizerResult, Map<String, double> values)
       : values = Map.unmodifiable(values);
 
   /// What the minimizer reported (e.g., a `PowellResult` with further
@@ -102,5 +101,5 @@ Future<FitResult> fit<D>(Model<D> model, D data,
     rethrow;
   }
   params.setFreeValues(result.value);
-  return FitResult(result, {for (final n in names) n: params[n]});
+  return FitResult._(result, {for (final n in names) n: params[n]});
 }

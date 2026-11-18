@@ -4,14 +4,14 @@ import 'package:test/test.dart';
 void main() {
   group('Parameter', () {
     test('bounds default to none', () {
-      final p = Parameter("a", 1.5);
+      final p = _param("a", 1.5);
       expect(p.lower, isNull);
       expect(p.upper, isNull);
       expect(p.state, ParameterState.free);
     });
 
     test('valid bounds are stored', () {
-      final p = Parameter("a", 1.5, lower: -1, upper: 2);
+      final p = _param("a", 1.5, lower: -1, upper: 2);
       expect(p.lower, -1);
       expect(p.upper, 2);
       p.setBounds(null, 5);
@@ -22,19 +22,23 @@ void main() {
     });
 
     test('invalid bounds throw', () {
-      expect(() => Parameter("a", 0, lower: 2, upper: 1), throwsArgumentError);
-      expect(() => Parameter("a", 0, lower: double.nan), throwsArgumentError);
-      expect(() => Parameter("a", 0, upper: double.nan), throwsArgumentError);
-      final p = Parameter("a", 0, lower: 0, upper: 1);
+      expect(() => _param("a", 0, lower: 2, upper: 1), throwsArgumentError);
+      expect(() => _param("a", 0, lower: double.nan), throwsArgumentError);
+      expect(() => _param("a", 0, upper: double.nan), throwsArgumentError);
+      final p = _param("a", 0, lower: 0, upper: 1);
       expect(() => p.setBounds(1, 0), throwsArgumentError);
       // Unchanged after a failed attempt
       expect(p.lower, 0);
       expect(p.upper, 1);
     });
 
-    test('copy is independent', () {
-      final p = Parameter("a", 1.5, free: false, lower: 0, upper: 2);
-      final c = Parameter.copy(p);
+    test('a copied set has independent parameters', () {
+      final s = ParameterSet(["a"]);
+      final p = s.parameter("a")
+        ..value = 1.5
+        ..freeze()
+        ..setBounds(0, 2);
+      final c = s.copy().parameter("a");
       c.value = 9;
       c.thaw();
       c.setBounds(null, null);
@@ -45,8 +49,8 @@ void main() {
     });
 
     test('toString', () {
-      expect(Parameter("a", 1.5).toString(), "a = 1.5");
-      expect(Parameter("a", 1.5, free: false, lower: 0).toString(),
+      expect(_param("a", 1.5).toString(), "a = 1.5");
+      expect(_param("a", 1.5, free: false, lower: 0).toString(),
           "a = 1.5 (frozen) in [0.0, inf]");
     });
   });
@@ -158,8 +162,8 @@ void main() {
 
   group('names', () {
     test('empty names and names with "." throw', () {
-      expect(() => Parameter("", 0), throwsArgumentError);
-      expect(() => Parameter("a.b", 0), throwsArgumentError);
+      expect(() => ParameterSet([""]), throwsArgumentError);
+      expect(() => ParameterSet(["a.b"]), throwsArgumentError);
       expect(() => ParameterSet(["a", ""]), throwsArgumentError);
       expect(() => ParameterSet(["a", "b.c"]), throwsArgumentError);
     });
@@ -477,4 +481,13 @@ void main() {
       expect(c["y"], 7);
     });
   });
+}
+
+/// A parameter of its own set with the given value, state, and bounds.
+Parameter _param(String name, double value,
+    {bool free = true, double? lower, double? upper}) {
+  final p = ParameterSet([name]).parameter(name)..value = value;
+  if (!free) p.freeze();
+  p.setBounds(lower, upper);
+  return p;
 }

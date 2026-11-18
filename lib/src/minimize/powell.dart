@@ -32,8 +32,7 @@ enum PowellStatus {
 
 /// Result of [powell].
 class PowellResult implements MinimizerResult {
-  /// Creates a result; normally done by [powell].
-  PowellResult(this.value, this.objective,
+  PowellResult._(this.value, this.objective,
       {required this.status,
       required this.message,
       required this.iterations,
@@ -77,8 +76,8 @@ class PowellResult implements MinimizerResult {
 /// State after an iteration of [powell], passed to its `onIteration`
 /// callback.
 class PowellProgress {
-  /// Creates a progress report; normally done by [powell].
-  PowellProgress(this.iteration, this.evaluations, this.value, this.objective);
+  PowellProgress._(
+      this.iteration, this.evaluations, this.value, this.objective);
 
   /// Number of the iteration just completed (starting at 1).
   final int iteration;
@@ -402,7 +401,7 @@ Future<PowellResult> powell(
     // limit no longer applies)
     limitActive = false;
     f(p.data);
-    return PowellResult(p.toList(), fp,
+    return PowellResult._(p.toList(), fp,
         status: status,
         message: messageFor(status, it),
         iterations: it,
@@ -447,7 +446,7 @@ Future<PowellResult> powell(
         f0 = fi.last;
         if (onIteration != null &&
             !await onIteration(
-                PowellProgress(iterations, evaluations, p0.data, f0))) {
+                PowellProgress._(iterations, evaluations, p0.data, f0))) {
           return result(p0, f0, PowellStatus.stoppedByCallback, iterations);
         }
         continue;
@@ -472,7 +471,7 @@ Future<PowellResult> powell(
           f0 = probe.f;
           if (onIteration != null &&
               !await onIteration(
-                  PowellProgress(iterations, evaluations, p0.data, f0))) {
+                  PowellProgress._(iterations, evaluations, p0.data, f0))) {
             return result(p0, f0, PowellStatus.stoppedByCallback, iterations);
           }
           continue;
@@ -524,7 +523,7 @@ Future<PowellResult> powell(
 
       if (onIteration != null &&
           !await onIteration(
-              PowellProgress(iterations, evaluations, p0.data, f0))) {
+              PowellProgress._(iterations, evaluations, p0.data, f0))) {
         return result(p0, f0, PowellStatus.stoppedByCallback, iterations);
       }
     }

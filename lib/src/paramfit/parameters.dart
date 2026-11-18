@@ -53,22 +53,17 @@ class ParameterRelation {
 /// The bounds are not enforced by the parameter itself; `fit()` passes
 /// them to the minimizer.
 class Parameter {
-  /// Creates a parameter, free unless [free] is false.
-  ///
-  /// Throws an [ArgumentError] if [name] is empty or contains `.`, or if the
-  /// bounds are invalid (see [setBounds]).
-  Parameter(this.name, double value,
-      {bool free = true, double? lower, double? upper})
-      : _value = value,
-        _free = free {
+  // Created by [ParameterSet] only (free, value 0, no bounds).
+  Parameter._(this.name)
+      : _value = 0.0,
+        _free = true {
     _checkName(name, "name");
-    setBounds(lower, upper);
   }
 
-  /// Creates a copy of [p] with the same name, value, state, bounds, and
-  /// relation. The relation still refers to the source parameters of [p];
-  /// [ParameterSet.copy] remaps relations within a set.
-  Parameter.copy(Parameter p)
+  // Copy with the same name, value, state, bounds, and relation; the
+  // relation still refers to the sources of [p] ([ParameterSet.copy]
+  // remaps it).
+  Parameter._copy(Parameter p)
       : name = p.name,
         _value = p._value,
         _free = p._free,
@@ -259,7 +254,7 @@ class ParameterSet {
       if (_own.containsKey(name)) {
         throw ArgumentError.value(name, "names", "Duplicate parameter name");
       }
-      _own[name] = Parameter(name, 0.0);
+      _own[name] = Parameter._(name);
     }
     _addChildren(children);
   }
@@ -450,7 +445,7 @@ class ParameterSet {
   ParameterSet _copyStructure(Map<Parameter, Parameter> mapping) {
     final c = ParameterSet._empty();
     for (final p in _own.values) {
-      final pc = Parameter.copy(p);
+      final pc = Parameter._copy(p);
       mapping[p] = pc;
       c._own[p.name] = pc;
     }

@@ -13,44 +13,32 @@ class GoldenSectionResult {
       this.bestF});
 
   /// Location of the minimum or null if the search failed
-  double? value;
+  final double? value;
 
   /// Why the search failed; empty on success.
-  String message;
+  final String message;
 
   /// Number of rounds needed to bracket the minimum (relocating or
   /// enlarging the interval).
-  int? intervalSearchIterations;
+  final int? intervalSearchIterations;
 
   /// Number of golden sections carried out; null if no minimum was
   /// bracketed.
-  int? sectionIterations;
+  final int? sectionIterations;
 
   /// Point with the lowest function value evaluated during the search
   /// (also available if the search failed)
-  double? bestX;
+  final double? bestX;
 
   /// Function value at [bestX]
-  double? bestF;
+  final double? bestF;
 
   @override
   String toString() {
-    return "Value = $value, message = $message, intervalSearchIterations = $intervalSearchIterations, sectionIterations = $sectionIterations, bestX = $bestX, bestF = $bestF";
-  }
-}
-
-/// Thrown by [goldenSection] if neither the interval nor a scale to build
-/// one is given.
-class OptimizeException implements Exception {
-  /// Description of the problem.
-  String message;
-
-  /// Creates an exception with [message].
-  OptimizeException(this.message);
-
-  @override
-  String toString() {
-    return message;
+    return "GoldenSectionResult: value = $value, message = $message, "
+        "intervalSearchIterations = $intervalSearchIterations, "
+        "sectionIterations = $sectionIterations, bestX = $bestX, "
+        "bestF = $bestF";
   }
 }
 
@@ -67,7 +55,8 @@ class OptimizeException implements Exception {
 /// the function decreases towards a bound, the minimum is searched between
 /// [xc] and the bound; if the bound itself is the best point found, exactly
 /// the bound is returned. Throws an [ArgumentError] if a bound is NaN, if
-/// [lowerBound] > [upperBound], or if [xc] is not within the bounds. If both
+/// [lowerBound] > [upperBound], if [xc] is not within the bounds, or if
+/// neither [xlow] (or [xup]) nor [scale] is given. If both
 /// bounds are equal, [xc] is returned after a single evaluation.
 ///
 /// ```dart
@@ -138,13 +127,13 @@ GoldenSectionResult goldenSection(double Function(double) f, double xc,
   while (true) {
     if (xlow == null) {
       if (scale == null) {
-        throw OptimizeException("xlow and scale are null");
+        throw ArgumentError("Either xlow or scale must be given");
       }
       xlow = xc - scale;
     }
     if (xup == null) {
       if (scale == null) {
-        throw OptimizeException("xup and scale are null");
+        throw ArgumentError("Either xup or scale must be given");
       }
       xup = xc + scale;
     }
