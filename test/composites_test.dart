@@ -173,10 +173,10 @@ void main() {
       expect(m.line["b"], 0.2);
     });
 
-    test('limits on component parameters act as bounds', () async {
+    test('bounds on component parameters reach the minimizer', () async {
       final m = _model();
-      m.sum.setLimits("g1.amp", 0, 2); // true value 3
-      // Start value 2.5 outside the limits: rejected, qualified name given
+      m.sum.setBounds("g1.amp", 0, 2); // true value 3
+      // Start value 2.5 outside the bounds: rejected, qualified name given
       await expectLater(
           fit(m.sum, _data()),
           throwsA(isA<ArgumentError>()

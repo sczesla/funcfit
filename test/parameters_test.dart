@@ -5,30 +5,30 @@ import 'package:test/test.dart';
 
 void main() {
   group('Parameter', () {
-    test('limits default to none', () {
+    test('bounds default to none', () {
       final p = Parameter("a", 1.5);
       expect(p.lower, isNull);
       expect(p.upper, isNull);
       expect(p.state, ParameterState.free);
     });
 
-    test('valid limits are stored', () {
+    test('valid bounds are stored', () {
       final p = Parameter("a", 1.5, lower: -1, upper: 2);
       expect(p.lower, -1);
       expect(p.upper, 2);
-      p.setLimits(null, 5);
+      p.setBounds(null, 5);
       expect(p.lower, isNull);
       expect(p.upper, 5);
-      p.setLimits(3, 3); // equal limits are allowed
+      p.setBounds(3, 3); // equal bounds are allowed
       expect(p.lower, 3);
     });
 
-    test('invalid limits throw', () {
+    test('invalid bounds throw', () {
       expect(() => Parameter("a", 0, lower: 2, upper: 1), throwsArgumentError);
       expect(() => Parameter("a", 0, lower: double.nan), throwsArgumentError);
       expect(() => Parameter("a", 0, upper: double.nan), throwsArgumentError);
       final p = Parameter("a", 0, lower: 0, upper: 1);
-      expect(() => p.setLimits(1, 0), throwsArgumentError);
+      expect(() => p.setBounds(1, 0), throwsArgumentError);
       // Unchanged after a failed attempt
       expect(p.lower, 0);
       expect(p.upper, 1);
@@ -39,7 +39,7 @@ void main() {
       final c = Parameter.copy(p);
       c.value = 9;
       c.thaw();
-      c.setLimits(null, null);
+      c.setBounds(null, null);
       expect(p.value, 1.5);
       expect(p.state, ParameterState.frozen);
       expect(p.lower, 0);
@@ -70,7 +70,7 @@ void main() {
       expect(s.freeValues(), [3.0, 1.0, 2.0]);
     });
 
-    test('new parameters are free, 0, without limits', () {
+    test('new parameters are free, 0, without bounds', () {
       final p = ParameterSet(["x"]).parameter("x");
       expect(p.value, 0.0);
       expect(p.state, ParameterState.free);
@@ -89,7 +89,7 @@ void main() {
       expect(() => s.parameter("x"), throwsArgumentError);
       expect(() => s.freeze("x"), throwsArgumentError);
       expect(() => s.thaw("x"), throwsArgumentError);
-      expect(() => s.setLimits("x", 0, 1), throwsArgumentError);
+      expect(() => s.setBounds("x", 0, 1), throwsArgumentError);
     });
 
     test('names cannot be modified from outside', () {
@@ -127,25 +127,25 @@ void main() {
       expect(() => s.setFreeValues([]), throwsArgumentError);
     });
 
-    test('setLimits validates', () {
+    test('setBounds validates', () {
       final s = make();
-      s.setLimits("a", 0, 1);
+      s.setBounds("a", 0, 1);
       expect(s.parameter("a").lower, 0);
       expect(s.parameter("a").upper, 1);
-      expect(() => s.setLimits("a", 1, 0), throwsArgumentError);
+      expect(() => s.setBounds("a", 1, 0), throwsArgumentError);
     });
 
-    test('copy is deep and keeps order, values, state, and limits', () {
+    test('copy is deep and keeps order, values, state, and bounds', () {
       final s = make();
       s.freeze("a");
-      s.setLimits("b", 0, 5);
+      s.setBounds("b", 0, 5);
       final c = s.copy();
       expect(c.names, s.names);
       expect(c.freeValues(), s.freeValues());
       expect(c.parameter("b").upper, 5);
       c["c"] = 99;
       c.thaw("a");
-      c.setLimits("b", null, null);
+      c.setBounds("b", null, null);
       expect(s["c"], 3);
       expect(s.parameter("a").state, ParameterState.frozen);
       expect(s.parameter("b").upper, 5);
@@ -158,32 +158,32 @@ void main() {
     });
   });
 
-  group('limitPenalty', () {
+  group('boundPenalty', () {
     ParameterSet one(double value, {double? lower, double? upper}) {
       final s = ParameterSet(["a"]);
       s["a"] = value;
-      s.setLimits("a", lower, upper);
+      s.setBounds("a", lower, upper);
       return s;
     }
 
-    test('zero within and at the limits, and without limits', () {
-      expect(limitPenalty(one(0.5, lower: 0, upper: 1)), 0);
-      expect(limitPenalty(one(0, lower: 0, upper: 1)), 0);
-      expect(limitPenalty(one(1, lower: 0, upper: 1)), 0);
-      expect(limitPenalty(one(1e9)), 0);
+    test('zero within and at the bounds, and without bounds', () {
+      expect(boundPenalty(one(0.5, lower: 0, upper: 1)), 0);
+      expect(boundPenalty(one(0, lower: 0, upper: 1)), 0);
+      expect(boundPenalty(one(1, lower: 0, upper: 1)), 0);
+      expect(boundPenalty(one(1e9)), 0);
     });
 
-    test('formula beyond the limits', () {
+    test('formula beyond the bounds', () {
       double expected(double d) => exp(min(d / 1e-5, 10)) - 1 + 1e6 * d;
-      expect(limitPenalty(one(-2e-6, lower: 0)), closeTo(expected(2e-6), 1e-9));
-      expect(limitPenalty(one(1.5, upper: 1)), closeTo(expected(0.5), 1e-6));
+      expect(boundPenalty(one(-2e-6, lower: 0)), closeTo(expected(2e-6), 1e-9));
+      expect(boundPenalty(one(1.5, upper: 1)), closeTo(expected(0.5), 1e-6));
     });
 
-    test('continuous at the limit and increasing with distance', () {
-      expect(limitPenalty(one(-1e-12, lower: 0)), lessThan(1e-5));
+    test('continuous at the bound and increasing with distance', () {
+      expect(boundPenalty(one(-1e-12, lower: 0)), lessThan(1e-5));
       double last = 0;
       for (final d in [1e-6, 1e-5, 1e-4, 1e-3, 1e-1, 10.0]) {
-        final pen = limitPenalty(one(1 + d, upper: 1));
+        final pen = boundPenalty(one(1 + d, upper: 1));
         expect(pen, greaterThan(last), reason: "d = $d");
         last = pen;
       }
@@ -191,25 +191,25 @@ void main() {
 
     test('linScale', () {
       final s = one(2, upper: 1);
-      expect(limitPenalty(s, linScale: 0), closeTo(exp(10) - 1, 1e-6));
+      expect(boundPenalty(s, linScale: 0), closeTo(exp(10) - 1, 1e-6));
     });
 
     test('expScale', () {
       // d = 0.01: with expScale = 0.01 the exponential term is e^1 - 1
       final s = one(1.01, upper: 1);
-      expect(limitPenalty(s, linScale: 0, expScale: 0.01),
+      expect(boundPenalty(s, linScale: 0, expScale: 0.01),
           closeTo(exp(1) - 1, 1e-9));
       // Default 1e-5: saturated at e^10 - 1
-      expect(limitPenalty(s, linScale: 0), closeTo(exp(10) - 1, 1e-6));
+      expect(boundPenalty(s, linScale: 0), closeTo(exp(10) - 1, 1e-6));
       // Saturation starts at 10 * expScale
-      expect(limitPenalty(one(1.1, upper: 1), linScale: 0, expScale: 0.01),
+      expect(boundPenalty(one(1.1, upper: 1), linScale: 0, expScale: 0.01),
           closeTo(exp(10) - 1, 1e-6));
     });
 
     test('invalid expScale throws', () {
       final s = one(0.5, lower: 0);
       for (final bad in [0.0, -1e-5, double.nan, double.infinity]) {
-        expect(() => limitPenalty(s, expScale: bad), throwsArgumentError,
+        expect(() => boundPenalty(s, expScale: bad), throwsArgumentError,
             reason: "expScale = $bad");
       }
     });
@@ -218,12 +218,12 @@ void main() {
       final s = ParameterSet(["a", "b"]);
       s["a"] = -1;
       s["b"] = 3;
-      s.setLimits("a", 0, null);
-      s.setLimits("b", null, 2);
+      s.setBounds("a", 0, null);
+      s.setBounds("b", null, 2);
       s.freeze("b");
-      final pa = limitPenalty(one(-1, lower: 0));
-      final pb = limitPenalty(one(3, upper: 2));
-      expect(limitPenalty(s), closeTo(pa + pb, 1e-6));
+      final pa = boundPenalty(one(-1, lower: 0));
+      final pb = boundPenalty(one(3, upper: 2));
+      expect(boundPenalty(s), closeTo(pa + pb, 1e-6));
     });
   });
 
@@ -311,21 +311,21 @@ void main() {
       expect(s.parameter("a").state, ParameterState.free);
     });
 
-    test('dependent parameters reject value, freeze, thaw, limits', () {
+    test('dependent parameters reject value, freeze, thaw, bounds', () {
       final s = abc();
       s.relate("b", ["a"], (v) => v[0]);
       expect(() => s["b"] = 1, throwsArgumentError);
       expect(() => s.freeze("b"), throwsArgumentError);
       expect(() => s.thaw("b"), throwsArgumentError);
-      expect(() => s.setLimits("b", 0, 1), throwsArgumentError);
-      s.setLimits("b", null, null); // removing limits is fine
+      expect(() => s.setBounds("b", 0, 1), throwsArgumentError);
+      s.setBounds("b", null, null); // removing bounds is fine
       expect(() => s.relate("b", ["c"], (v) => v[0]), throwsArgumentError,
           reason: "already dependent");
     });
 
-    test('a parameter with limits cannot become dependent', () {
+    test('a parameter with bounds cannot become dependent', () {
       final s = abc();
-      s.setLimits("b", 0, 5);
+      s.setBounds("b", 0, 5);
       expect(() => s.relate("b", ["a"], (v) => v[0]), throwsArgumentError);
     });
 
@@ -380,9 +380,9 @@ void main() {
   group('bounds of free parameters', () {
     test('in the order of the free parameters', () {
       final s = ParameterSet(["a", "b", "c"]);
-      s.setLimits("a", 0, null);
-      s.setLimits("b", -1, 1);
-      s.setLimits("c", null, 5);
+      s.setBounds("a", 0, null);
+      s.setBounds("b", -1, 1);
+      s.setBounds("c", null, 5);
       s.freeze("b");
       expect(s.freeLowerBounds(), [0.0, null]);
       expect(s.freeUpperBounds(), [null, 5.0]);
@@ -493,12 +493,12 @@ void main() {
   });
 
   group('copy with hierarchy and relations', () {
-    test('structure, values, states, and limits are copied', () {
+    test('structure, values, states, and bounds are copied', () {
       final g1 = ParameterSet(["mu", "sigma"]);
       final sum = ParameterSet(["jitter"], children: {"g1": g1});
       sum["g1.mu"] = 2;
       sum.freeze("jitter");
-      sum.setLimits("g1.sigma", 0, null);
+      sum.setBounds("g1.sigma", 0, null);
       final c = sum.copy();
       expect(c.names, sum.names);
       expect(c["g1.mu"], 2);

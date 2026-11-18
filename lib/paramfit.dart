@@ -1,5 +1,5 @@
 /// Parameter and model layer on top of the minimization algorithms:
-/// named parameters that can be frozen, thawed, limited, and related
+/// named parameters that can be frozen, thawed, bounded, and related
 /// (`ParameterSet`), models (`Model`, `CurveModel`, `CurveSum`,
 /// `CurveProduct`), data (`XYData`), log-likelihoods, and `fit()`.
 ///

@@ -124,7 +124,7 @@ class _EvaluationLimitReached implements Exception {
 /// [lowerBounds] and [upperBounds] optionally restrict each parameter to a
 /// range; a null list or element, or an infinite value, means no bound. The
 /// objective is never evaluated outside the bounds: each line search is
-/// limited to the part of the search direction within the bounds, and the
+/// restricted to the part of the search direction within the bounds, and the
 /// extrapolated point used to decide on replacing a direction is shortened
 /// to stay within them. Throws an [ArgumentError] if the lengths do not
 /// match [pInitial], if a bound is NaN, if a lower bound exceeds the upper
@@ -143,7 +143,7 @@ class _EvaluationLimitReached implements Exception {
 /// significantly better point is taken; otherwise the result stays
 /// exactly on the bound. No local method can rule out other non-optimal
 /// end points, so a check with other start values remains useful; see
-/// also the section "Limits: use them sparingly" in the package README.
+/// also the section "Bounds: use them sparingly" in the package README.
 ///
 /// The search stops without convergence after [maxIterations] iterations,
 /// after [maxEvaluations] evaluations of the objective (default: no limit),
@@ -403,7 +403,8 @@ Future<PowellResult> powell(
       };
 
   PowellResult result(Vector p, double fp, PowellStatus status, int it) {
-    // Leave stateful objectives at the returned point (not limited)
+    // Leave stateful objectives at the returned point (the evaluation
+    // limit no longer applies)
     limitActive = false;
     f(p.data);
     return PowellResult(p.toList(), fp,

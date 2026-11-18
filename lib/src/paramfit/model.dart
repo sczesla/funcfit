@@ -28,7 +28,7 @@ import 'parameters.dart';
 /// else is available there. Inside loops over data, read parameter values
 /// once beforehand: each access is a lookup by name.
 abstract class Model<D> {
-  /// Creates a model with one parameter per name (free, value 0, no limits)
+  /// Creates a model with one parameter per name (free, value 0, no bounds)
   /// and, for composite models, the parameter sets of its components as
   /// labeled [children] (references, not copies). See [ParameterSet].
   Model(List<String> names, {Map<String, ParameterSet> children = const {}})
@@ -53,10 +53,10 @@ abstract class Model<D> {
   /// Makes the parameter called [name] free. See [ParameterSet.thaw].
   void thaw(String name) => params.thaw(name);
 
-  /// Sets the limits of the parameter called [name]. See
-  /// [ParameterSet.setLimits].
-  void setLimits(String name, double? lower, double? upper) =>
-      params.setLimits(name, lower, upper);
+  /// Sets the bounds of the parameter called [name]. See
+  /// [ParameterSet.setBounds].
+  void setBounds(String name, double? lower, double? upper) =>
+      params.setBounds(name, lower, upper);
 
   /// Makes the parameter called [target] a function of the parameters called
   /// [sources]. See [ParameterSet.relate].

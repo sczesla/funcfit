@@ -1,4 +1,4 @@
-/// Fitting models with named parameters (free, frozen, limited, or
+/// Fitting models with named parameters (free, frozen, bounded, or
 /// dependent) to data, on top of exchangeable derivative-free minimization
 /// algorithms (Powell's method with golden section line search).
 ///

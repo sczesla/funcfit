@@ -45,29 +45,29 @@ class ParameterRelation {
 }
 
 /// A named model parameter with a value, a state (free, frozen, or
-/// dependent), and optional lower and upper limits.
+/// dependent), and optional lower and upper bounds.
 ///
 /// Free parameters are varied by the optimizer; frozen ones keep their
 /// [value]; the value of a dependent parameter is computed from other
 /// parameters by its [relation] whenever it is read.
 ///
-/// The limits are not enforced by the parameter itself; the fitting code
+/// The bounds are not enforced by the parameter itself; the fitting code
 /// passes them to the minimizer as bounds, or an objective can add
-/// [limitPenalty].
+/// [boundPenalty].
 class Parameter {
   /// Creates a parameter, free unless [free] is false.
   ///
   /// Throws an [ArgumentError] if [name] is empty or contains `.`, or if the
-  /// limits are invalid (see [setLimits]).
+  /// bounds are invalid (see [setBounds]).
   Parameter(this.name, double value,
       {bool free = true, double? lower, double? upper})
       : _value = value,
         _free = free {
     _checkName(name, "name");
-    setLimits(lower, upper);
+    setBounds(lower, upper);
   }
 
-  /// Creates a copy of [p] with the same name, value, state, limits, and
+  /// Creates a copy of [p] with the same name, value, state, bounds, and
   /// relation. The relation still refers to the source parameters of [p];
   /// [ParameterSet.copy] remaps relations within a set.
   Parameter.copy(Parameter p)
@@ -104,10 +104,10 @@ class Parameter {
   /// The relation of a dependent parameter, or null.
   ParameterRelation? get relation => _relation;
 
-  /// Lower limit, or null if there is none.
+  /// Lower bound, or null if there is none.
   double? get lower => _lower;
 
-  /// Upper limit, or null if there is none.
+  /// Upper bound, or null if there is none.
   double? get upper => _upper;
 
   void _checkNotDependent(String action) {
@@ -131,17 +131,17 @@ class Parameter {
     _free = false;
   }
 
-  /// Sets the limits; null means no limit.
+  /// Sets the bounds; null means no bound.
   ///
-  /// Limits are hard edges for the fit; use them sparingly, preferably only
+  /// Bounds are hard edges for the fit; use them sparingly, preferably only
   /// where the model is undefined or impossible. Equivalent solutions (a
   /// phase and the phase plus one period, the sign of an amplitude) are
   /// better handled by post-processing or reparameterization; see the
-  /// section "Limits: use them sparingly" in the package README.
+  /// section "Bounds: use them sparingly" in the package README.
   ///
-  /// Throws an [ArgumentError] if a limit is NaN, if [lower] > [upper], or
-  /// if the parameter is dependent and a limit is given.
-  void setLimits(double? lower, double? upper) {
+  /// Throws an [ArgumentError] if a bound is NaN, if [lower] > [upper], or
+  /// if the parameter is dependent and a bound is given.
+  void setBounds(double? lower, double? upper) {
     if (lower != null && lower.isNaN) {
       throw ArgumentError.value(lower, "lower", "$name: must not be NaN");
     }
@@ -150,10 +150,10 @@ class Parameter {
     }
     if (lower != null && upper != null && lower > upper) {
       throw ArgumentError(
-          "$name: lower limit ($lower) is greater than upper limit ($upper)");
+          "$name: lower bound ($lower) is greater than upper bound ($upper)");
     }
     if (_relation != null && (lower != null || upper != null)) {
-      throw ArgumentError("$name: a dependent parameter cannot have limits");
+      throw ArgumentError("$name: a dependent parameter cannot have bounds");
     }
     _lower = lower;
     _upper = upper;
@@ -163,7 +163,7 @@ class Parameter {
   /// `function(values of sources)`, computed whenever it is read.
   ///
   /// Throws an [ArgumentError] if the parameter is already dependent, if it
-  /// has limits, or if the relation would create a cycle (including this
+  /// has bounds, or if the relation would create a cycle (including this
   /// parameter being one of its own sources).
   void relate(List<Parameter> sources,
       double Function(List<double> sourceValues) function,
@@ -174,7 +174,7 @@ class Parameter {
     }
     if (_lower != null || _upper != null) {
       throw ArgumentError(
-          "$name: a parameter with limits cannot become dependent");
+          "$name: a parameter with bounds cannot become dependent");
     }
     // Follow the source references; reaching this parameter means a cycle
     final visited = HashSet<Parameter>.identity();
@@ -202,7 +202,7 @@ class Parameter {
   }
 
   String _describe(String displayName) {
-    final limits = (lower != null || upper != null)
+    final bounds = (lower != null || upper != null)
         ? " in [${lower ?? '-inf'}, ${upper ?? 'inf'}]"
         : "";
     final stateText = switch (state) {
@@ -211,7 +211,7 @@ class Parameter {
       ParameterState.dependent =>
         " (dependent${_relation!.description != null ? ': ${_relation!.description}' : ''})",
     };
-    return "$displayName = $value$stateText$limits";
+    return "$displayName = $value$stateText$bounds";
   }
 
   @override
@@ -242,7 +242,7 @@ class Parameter {
 /// }
 /// ```
 ///
-/// New parameters are free, have value 0, and no limits. Methods taking a
+/// New parameters are free, have value 0, and no bounds. Methods taking a
 /// parameter name accept qualified names and throw an [ArgumentError] for
 /// unknown names.
 class ParameterSet {
@@ -362,10 +362,10 @@ class ParameterSet {
   /// Freezes the parameter called [name]. See [Parameter.freeze].
   void freeze(String name) => parameter(name).freeze();
 
-  /// Sets the limits of the parameter called [name]; null means no limit.
-  /// See [Parameter.setLimits].
-  void setLimits(String name, double? lower, double? upper) =>
-      parameter(name).setLimits(lower, upper);
+  /// Sets the bounds of the parameter called [name]; null means no bound.
+  /// See [Parameter.setBounds].
+  void setBounds(String name, double? lower, double? upper) =>
+      parameter(name).setBounds(lower, upper);
 
   /// Makes the parameter called [target] a function of the parameters
   /// called [sources]: its value becomes `function(values of sources)`.
@@ -401,12 +401,12 @@ class ParameterSet {
   Map<String, double> freeValuesByName() =>
       {for (final (n, p) in _freeEntries()) n: p.value};
 
-  /// Lower limits of the free parameters, in order (null: no limit), e.g.,
+  /// Lower bounds of the free parameters, in order (null: no bound), e.g.,
   /// as `lowerBounds` for `powell()`.
   List<double?> freeLowerBounds() =>
       [for (final (_, p) in _freeEntries()) p.lower];
 
-  /// Upper limits of the free parameters, in order (null: no limit), e.g.,
+  /// Upper bounds of the free parameters, in order (null: no bound), e.g.,
   /// as `upperBounds` for `powell()`.
   List<double?> freeUpperBounds() =>
       [for (final (_, p) in _freeEntries()) p.upper];
@@ -466,16 +466,16 @@ class ParameterSet {
       [for (final (n, p) in _entries()) p._describe(n)].join(", ");
 }
 
-/// Penalty for parameters outside their limits, to be added to the function
+/// Penalty for parameters outside their bounds, to be added to the function
 /// minimized (or subtracted from a log-likelihood).
 ///
 /// For each parameter, free or frozen, that lies a distance d > 0 beyond one
-/// of its limits, the penalty is
+/// of its bounds, the penalty is
 ///
 ///     exp(min(d / expScale, 10)) - 1 + linScale * d
 ///
-/// It is 0 within the limits and continuous at the limits. The exponential
-/// term rises steeply within the first `10 * expScale` beyond a limit and
+/// It is 0 within the bounds and continuous at the bounds. The exponential
+/// term rises steeply within the first `10 * expScale` beyond a bound and
 /// then stays at e^10 - 1 (about 22025); the linear term keeps growing, so
 /// that the optimizer is pushed back towards the allowed range from any
 /// distance.
@@ -483,7 +483,7 @@ class ParameterSet {
 /// [expScale] sets the distance over which the exponential term rises; it
 /// should be small compared to the typical scale of the parameters.
 /// Throws an [ArgumentError] if it is not positive and finite.
-double limitPenalty(ParameterSet params,
+double boundPenalty(ParameterSet params,
     {double linScale = 1e6, double expScale = 1e-5}) {
   if (!(expScale > 0 && expScale.isFinite)) {
     throw ArgumentError.value(

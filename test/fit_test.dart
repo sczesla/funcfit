@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 typedef _XY = ({List<double> x, List<double> y});
 
 /// Straight line y = a + b x, least squares. Fails the test if evaluated
-/// with parameter values outside the limits.
+/// with parameter values outside the bounds.
 class _Line extends Model<_XY> {
   _Line() : super(["a", "b"]);
 
@@ -16,7 +16,7 @@ class _Line extends Model<_XY> {
     for (final p in params.parameters) {
       if ((p.lower != null && p.value < p.lower!) ||
           (p.upper != null && p.value > p.upper!)) {
-        fail("Evaluated outside the limits: $params");
+        fail("Evaluated outside the bounds: $params");
       }
     }
     final a = this["a"], b = this["b"];
@@ -113,9 +113,9 @@ void main() {
       expect(m.params.parameter("a").state, ParameterState.frozen);
       m.thaw("a");
       expect(m.params.parameter("a").state, ParameterState.free);
-      m.setLimits("b", 0, 1);
+      m.setBounds("b", 0, 1);
       expect(m.params.parameter("b").upper, 1);
-      m.setLimits("b", null, null);
+      m.setBounds("b", null, null);
       m.relate("b", ["a"], (v) => 3 * v[0]);
       expect(m["b"], 6);
       m.removeRelation("b");
@@ -150,9 +150,9 @@ void main() {
       expect(m["b"], closeTo(sxy / sxx, 1e-4));
     });
 
-    test('limits act as bounds; never evaluated outside', () async {
+    test('bounds reach the minimizer; never evaluated outside', () async {
       final m = _Line();
-      m.setLimits("b", null, 1.5); // unconstrained b is about 2
+      m.setBounds("b", null, 1.5); // unconstrained b is about 2
       final r = await fit(m, _data);
       expect(r.converged, isTrue);
       expect(m["b"], 1.5);
@@ -218,10 +218,10 @@ void main() {
       expect(r.converged, isTrue);
     });
 
-    test('start value outside the limits throws before evaluating', () async {
+    test('start value outside the bounds throws before evaluating', () async {
       final m = _Line();
       m["b"] = 3;
-      m.setLimits("b", 0, 2);
+      m.setBounds("b", 0, 2);
       await expectLater(fit(m, _data), throwsArgumentError);
       expect(m.evaluations, 0);
     });
@@ -246,7 +246,7 @@ void main() {
       final m = _Line();
       m["a"] = 1;
       m["b"] = 2;
-      m.setLimits("b", 0, 10);
+      m.setBounds("b", 0, 10);
       final fake = _FakeMinimizer([3, 4]);
       final r = await fit(m, _data, minimizer: fake);
       expect(fake.x0, [1.0, 2.0]);
@@ -258,7 +258,7 @@ void main() {
       expect(r.message, "fake");
     });
 
-    test('no limits: no bounds passed', () async {
+    test('no bounds on parameters: none passed', () async {
       final fake = _FakeMinimizer([0, 0]);
       await fit(_Line(), _data, minimizer: fake);
       expect(fake.lower, isNull);
@@ -266,12 +266,12 @@ void main() {
     });
 
     test(
-        'minimizer without bounds support: fine without limits, '
-        'throws with limits', () async {
+        'minimizer without bounds support: fine without bounds, '
+        'throws with bounds', () async {
       final m = _Line();
       await fit(m, _data,
           minimizer: _FakeMinimizer([1, 1], supportsBounds: false));
-      m.setLimits("a", 0, null);
+      m.setBounds("a", 0, null);
       await expectLater(
           fit(m, _data,
               minimizer: _FakeMinimizer([1, 1], supportsBounds: false)),

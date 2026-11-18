@@ -17,7 +17,7 @@ import 'package:funcfit/funcfit.dart';
 class NormalDistribution extends Model<List<double>> {
   NormalDistribution() : super(["mu", "sigma"]) {
     // The standard deviation must be positive
-    setLimits("sigma", 1e-9, null);
+    setBounds("sigma", 1e-9, null);
   }
 
   /// Negative log-likelihood of the sample.
@@ -45,7 +45,7 @@ Future<void> main() async {
   ];
 
   final model = NormalDistribution();
-  model["sigma"] = 1; // start value within the limit
+  model["sigma"] = 1; // start value within the bound
   final result = await fit(model, sample);
   print(result);
 

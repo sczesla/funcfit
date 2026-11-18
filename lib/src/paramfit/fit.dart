@@ -36,18 +36,18 @@ class FitResult {
 /// Fits [model] to [data]: varies the free parameters of the model with
 /// [minimizer] to minimize `model.objective(data)`.
 ///
-/// - The limits of the free parameters are passed to the minimizer as
-///   bounds (none are passed if no free parameter has limits). A
-///   parameter that ends exactly on a limit is not a regular estimate, and
+/// - The bounds of the free parameters are passed to the minimizer as
+///   bounds (none are passed if no free parameter has bounds). A
+///   parameter that ends exactly on a bound is not a regular estimate, and
 ///   it may leave other parameters without influence on the model; see
-///   the section "Limits: use them sparingly" in the package README.
+///   the section "Bounds: use them sparingly" in the package README.
 /// - Afterwards, the parameters of the model hold the best fit; dependent
 ///   parameters follow their relations.
 /// - If the minimizer throws, the start values are restored and the
 ///   exception is rethrown.
 ///
 /// Throws an [ArgumentError] if the model has no free parameters, if the
-/// value of a free parameter lies outside its limits, if a relation of a
+/// value of a free parameter lies outside its bounds, if a relation of a
 /// dependent parameter refers to a parameter outside the model, or if the
 /// objective is NaN at the start values (e.g., a division by a parameter
 /// that starts at 0).
@@ -80,7 +80,7 @@ Future<FitResult> fit<D>(Model<D> model, D data,
     if ((lo != null && !(start[i] >= lo)) ||
         (hi != null && !(start[i] <= hi))) {
       throw ArgumentError("The value of '${freeNames[i]}' (${start[i]}) is "
-          "not within its limits [${lo ?? '-inf'}, ${hi ?? 'inf'}]");
+          "not within its bounds [${lo ?? '-inf'}, ${hi ?? 'inf'}]");
     }
   }
   final bounded = lower.any((b) => b != null) || upper.any((b) => b != null);

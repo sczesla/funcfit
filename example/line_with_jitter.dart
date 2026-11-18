@@ -15,7 +15,7 @@ import 'package:funcfit/funcfit.dart';
 /// Straight line y = a + b·x with an additional noise parameter "jitter".
 class JitterLine extends CurveModel {
   JitterLine() : super(["a", "b", "jitter"]) {
-    setLimits("jitter", 0, null);
+    setBounds("jitter", 0, null);
   }
 
   @override

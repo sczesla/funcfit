@@ -16,7 +16,7 @@ class _Line extends CurveModel {
 /// Line with a fitted noise term: overrides lnL to pass the jitter.
 class _JitterLine extends CurveModel {
   _JitterLine({super.noise}) : super(["a", "b", "jitter"]) {
-    setLimits("jitter", 0, null);
+    setBounds("jitter", 0, null);
   }
 
   @override
