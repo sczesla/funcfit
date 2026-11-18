@@ -2,3 +2,6 @@
 pubspec.lock
 doc/api/
 .idea/
+
+# Local experiments, never committed or published
+example/scratch_*.dart

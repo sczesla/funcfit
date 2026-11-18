@@ -1,1 +1,6 @@
 include: package:lints/recommended.yaml
+
+analyzer:
+  exclude:
+    # Local experiments (see .gitignore)
+    - example/scratch_*.dart
