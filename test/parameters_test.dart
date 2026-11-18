@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:funcfit/funcfit.dart';
 import 'package:test/test.dart';
 
@@ -155,75 +153,6 @@ void main() {
       final s = make();
       s.freeze("a");
       expect(s.toString(), "c = 3.0, a = 1.0 (frozen), b = 2.0");
-    });
-  });
-
-  group('boundPenalty', () {
-    ParameterSet one(double value, {double? lower, double? upper}) {
-      final s = ParameterSet(["a"]);
-      s["a"] = value;
-      s.setBounds("a", lower, upper);
-      return s;
-    }
-
-    test('zero within and at the bounds, and without bounds', () {
-      expect(boundPenalty(one(0.5, lower: 0, upper: 1)), 0);
-      expect(boundPenalty(one(0, lower: 0, upper: 1)), 0);
-      expect(boundPenalty(one(1, lower: 0, upper: 1)), 0);
-      expect(boundPenalty(one(1e9)), 0);
-    });
-
-    test('formula beyond the bounds', () {
-      double expected(double d) => exp(min(d / 1e-5, 10)) - 1 + 1e6 * d;
-      expect(boundPenalty(one(-2e-6, lower: 0)), closeTo(expected(2e-6), 1e-9));
-      expect(boundPenalty(one(1.5, upper: 1)), closeTo(expected(0.5), 1e-6));
-    });
-
-    test('continuous at the bound and increasing with distance', () {
-      expect(boundPenalty(one(-1e-12, lower: 0)), lessThan(1e-5));
-      double last = 0;
-      for (final d in [1e-6, 1e-5, 1e-4, 1e-3, 1e-1, 10.0]) {
-        final pen = boundPenalty(one(1 + d, upper: 1));
-        expect(pen, greaterThan(last), reason: "d = $d");
-        last = pen;
-      }
-    });
-
-    test('linScale', () {
-      final s = one(2, upper: 1);
-      expect(boundPenalty(s, linScale: 0), closeTo(exp(10) - 1, 1e-6));
-    });
-
-    test('expScale', () {
-      // d = 0.01: with expScale = 0.01 the exponential term is e^1 - 1
-      final s = one(1.01, upper: 1);
-      expect(boundPenalty(s, linScale: 0, expScale: 0.01),
-          closeTo(exp(1) - 1, 1e-9));
-      // Default 1e-5: saturated at e^10 - 1
-      expect(boundPenalty(s, linScale: 0), closeTo(exp(10) - 1, 1e-6));
-      // Saturation starts at 10 * expScale
-      expect(boundPenalty(one(1.1, upper: 1), linScale: 0, expScale: 0.01),
-          closeTo(exp(10) - 1, 1e-6));
-    });
-
-    test('invalid expScale throws', () {
-      final s = one(0.5, lower: 0);
-      for (final bad in [0.0, -1e-5, double.nan, double.infinity]) {
-        expect(() => boundPenalty(s, expScale: bad), throwsArgumentError,
-            reason: "expScale = $bad");
-      }
-    });
-
-    test('applies to frozen parameters and sums over parameters', () {
-      final s = ParameterSet(["a", "b"]);
-      s["a"] = -1;
-      s["b"] = 3;
-      s.setBounds("a", 0, null);
-      s.setBounds("b", null, 2);
-      s.freeze("b");
-      final pa = boundPenalty(one(-1, lower: 0));
-      final pb = boundPenalty(one(3, upper: 2));
-      expect(boundPenalty(s), closeTo(pa + pb, 1e-6));
     });
   });
 

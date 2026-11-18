@@ -10,7 +10,7 @@ Numerical minimization and parameterized model fitting.
   data at its current parameter values; specific curve models with
   Gaussian or Laplace noise are provided.
 
-More examples are in the [example](example/README.md) folder.
+More examples are in the [example](https://github.com/sczesla/funcfit/blob/main/example/README.md) folder.
 
 ## Libraries
 
@@ -96,10 +96,10 @@ Future<void> main() async {
 **Going further**: bound a parameter to a range (`line.setBounds("b", 0, 2)`),
 tie parameters together (`relate()`), use robust Laplace noise against
 outliers (`super(["a", "b"], noise: Noise.laplace)`), or combine models
-(`CurveSum`, `CurveProduct`). See the [examples](example/README.md).
+(`CurveSum`, `CurveProduct`). See the [examples](https://github.com/sczesla/funcfit/blob/main/example/README.md).
 
 **Bounds can make fitting harder** see
-[Bounds: avoid them where possible](doc/bounds.md) for why and for
+[Bounds: avoid them where possible](https://github.com/sczesla/funcfit/blob/main/doc/bounds.md) for why and for
 alternatives.
 
 

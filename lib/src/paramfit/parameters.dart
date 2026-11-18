@@ -1,5 +1,4 @@
 import 'dart:collection';
-import 'dart:math';
 
 /// State of a [Parameter].
 enum ParameterState {
@@ -51,9 +50,8 @@ class ParameterRelation {
 /// [value]; the value of a dependent parameter is computed from other
 /// parameters by its [relation] whenever it is read.
 ///
-/// The bounds are not enforced by the parameter itself; the fitting code
-/// passes them to the minimizer as bounds, or an objective can add
-/// [boundPenalty].
+/// The bounds are not enforced by the parameter itself; `fit()` passes
+/// them to the minimizer.
 class Parameter {
   /// Creates a parameter, free unless [free] is false.
   ///
@@ -465,44 +463,4 @@ class ParameterSet {
   @override
   String toString() =>
       [for (final (n, p) in _entries()) p._describe(n)].join(", ");
-}
-
-/// Penalty for parameters outside their bounds, to be added to the function
-/// minimized (or subtracted from a log-likelihood).
-///
-/// For each parameter, free or frozen, that lies a distance d > 0 beyond one
-/// of its bounds, the penalty is
-///
-///     exp(min(d / expScale, 10)) - 1 + linScale * d
-///
-/// It is 0 within the bounds and continuous at the bounds. The exponential
-/// term rises steeply within the first `10 * expScale` beyond a bound and
-/// then stays at e^10 - 1 (about 22025); the linear term keeps growing, so
-/// that the optimizer is pushed back towards the allowed range from any
-/// distance.
-///
-/// [expScale] sets the distance over which the exponential term rises; it
-/// should be small compared to the typical scale of the parameters.
-/// Throws an [ArgumentError] if it is not positive and finite.
-double boundPenalty(ParameterSet params,
-    {double linScale = 1e6, double expScale = 1e-5}) {
-  if (!(expScale > 0 && expScale.isFinite)) {
-    throw ArgumentError.value(
-        expScale, "expScale", "Must be positive and finite");
-  }
-  double penalty = 0;
-  for (final p in params.parameters) {
-    final lower = p.lower;
-    final upper = p.upper;
-    final value = p.value;
-    if (lower != null && value < lower) {
-      final d = lower - value;
-      penalty += exp(min(d / expScale, 10)) - 1.0 + d * linScale;
-    }
-    if (upper != null && value > upper) {
-      final d = value - upper;
-      penalty += exp(min(d / expScale, 10)) - 1.0 + d * linScale;
-    }
-  }
-  return penalty;
 }
