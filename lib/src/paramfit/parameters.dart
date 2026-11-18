@@ -133,11 +133,12 @@ class Parameter {
 
   /// Sets the bounds; null means no bound.
   ///
-  /// Bounds are hard edges for the fit; use them sparingly, preferably only
-  /// where the model is undefined or impossible. Equivalent solutions (a
-  /// phase and the phase plus one period, the sign of an amplitude) are
-  /// better handled by post-processing or reparameterization; see the
-  /// section "Bounds: use them sparingly" in the package README.
+  /// Bounds are hard edges for the fit; avoid them where possible and use
+  /// them mainly where the model is undefined or impossible. Equivalent
+  /// solutions (a phase and the phase plus one period, the sign of an
+  /// amplitude) are better handled by post-processing or
+  /// reparameterization; see
+  /// [Bounds: avoid them where possible](https://github.com/sczesla/funcfit/blob/main/doc/bounds.md).
   ///
   /// Throws an [ArgumentError] if a bound is NaN, if [lower] > [upper], or
   /// if the parameter is dependent and a bound is given.

@@ -121,29 +121,24 @@ class _EvaluationLimitReached implements Exception {
 /// `rftol * (|f_start| + |f_end|) / 2` (relative), and no line search failed
 /// to bracket a minimum while still finding a significantly lower value.
 ///
-/// [lowerBounds] and [upperBounds] optionally restrict each parameter to a
-/// range; a null list or element, or an infinite value, means no bound. The
-/// objective is never evaluated outside the bounds: each line search is
-/// restricted to the part of the search direction within the bounds, and the
-/// extrapolated point used to decide on replacing a direction is shortened
-/// to stay within them. Throws an [ArgumentError] if the lengths do not
-/// match [pInitial], if a bound is NaN, if a lower bound exceeds the upper
-/// one, if [pInitial] is not within the bounds, or if [objective] returns
-/// NaN at [pInitial] (e.g., a division by a parameter starting at 0); the
-/// objective may be infinite there. Equal bounds fix a
-/// parameter. If the search converges at a bound after search directions
-/// were replaced, the directions are reset to the initial coordinate
-/// directions and convergence is only accepted with those, because the
-/// replaced directions may all be blocked by the bound. Before convergence
-/// on a bound is accepted, the parameters on the bound are moved inward by
-/// a small step (`xtol` times their [initialScale]) and one more sweep of
-/// line searches follows, the other parameters first. This finds better
-/// points where a parameter on its bound removes the influence of others
-/// (e.g., an amplitude at 0 makes phase and period irrelevant). Only a
-/// significantly better point is taken; otherwise the result stays
-/// exactly on the bound. No local method can rule out other non-optimal
-/// end points, so a check with other start values remains useful; see
-/// also the section "Bounds: use them sparingly" in the package README.
+/// [lowerBounds] and [upperBounds] optionally restrict parameters to a
+/// range; a null list or element, or an infinite value, means no bound.
+/// The objective is never evaluated outside the bounds. Throws an
+/// [ArgumentError] if the lengths do not match [pInitial], if a bound is
+/// NaN, if a lower bound exceeds the upper one, if [pInitial] is not within
+/// the bounds, or if [objective] returns NaN at [pInitial]. Equal bounds
+/// fix a parameter.
+///
+/// If the search converges at a bound after search directions were
+/// replaced, the directions are reset to the initial coordinate directions
+/// and convergence is only accepted with those, because the replaced
+/// directions may all be blocked by the bound. Before convergence on a
+/// bound is accepted, the parameters on the bound are moved inward by a
+/// small step (`xtol` times their [initialScale]) and one more sweep of
+/// line searches follows, the other parameters first. Only a significantly
+/// better point is taken; otherwise the result stays exactly on the bound.
+/// No local method can rule out other non-optimal end points, so a check
+/// with other start values remains useful.
 ///
 /// The search stops without convergence after [maxIterations] iterations,
 /// after [maxEvaluations] evaluations of the objective (default: no limit),
@@ -162,8 +157,8 @@ class _EvaluationLimitReached implements Exception {
 /// Laplace likelihood, clipping, or piecewise defined models), the line
 /// searches can stall: convergence is reported while the objective is
 /// still somewhat above its minimum, and tighter tolerances do not
-/// necessarily help. The result is then close to, but not exactly at, the
-/// optimum. To check, fit again from the result or from other start
+/// necessarily help. The result is usually close to, but not exactly at,
+/// the optimum. To check, fit again from the result or from other start
 /// values and compare the objectives; if precision matters, use a smooth
 /// approximation of the objective (e.g., pseudo-Huber instead of absolute
 /// values).

@@ -40,7 +40,7 @@ class FitResult {
 ///   bounds (none are passed if no free parameter has bounds). A
 ///   parameter that ends exactly on a bound is not a regular estimate, and
 ///   it may leave other parameters without influence on the model; see
-///   the section "Bounds: use them sparingly" in the package README.
+///   [Bounds: avoid them where possible](https://github.com/sczesla/funcfit/blob/main/doc/bounds.md).
 /// - Afterwards, the parameters of the model hold the best fit; dependent
 ///   parameters follow their relations.
 /// - If the minimizer throws, the start values are restored and the
