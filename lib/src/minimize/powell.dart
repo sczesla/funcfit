@@ -142,7 +142,8 @@ class _EvaluationLimitReached implements Exception {
 /// (e.g., an amplitude at 0 makes phase and period irrelevant). Only a
 /// significantly better point is taken; otherwise the result stays
 /// exactly on the bound. No local method can rule out other non-optimal
-/// end points, so a check with other start values remains useful.
+/// end points, so a check with other start values remains useful; see
+/// also the section "Limits: use them sparingly" in the package README.
 ///
 /// The search stops without convergence after [maxIterations] iterations,
 /// after [maxEvaluations] evaluations of the objective (default: no limit),

@@ -98,6 +98,43 @@ tie parameters together (`relate()`), use robust Laplace noise against
 outliers (`super(["a", "b"], noise: Noise.laplace)`), or combine models
 (`CurveSum`, `CurveProduct`). See the [examples](example/README.md).
 
+## Limits: use them sparingly
+
+Limits (`setLimits`) keep a parameter within a range; the fit never leaves
+it. They are, however, hard edges in the parameter space, and these make
+fitting harder, whatever the minimization algorithm:
+
+- A result exactly on a limit is not a regular estimate. The best value
+  within the limits lies on the limit, either because the data prefer a
+  value beyond it or because the search got stuck there. Statistics that
+  assume an optimum inside the range (e.g., uncertainties from the
+  curvature of the objective) do not apply in their usual form.
+- A parameter on its limit can make others meaningless: with an amplitude
+  at 0, position and width of a line, or period and phase of a sine, no
+  longer affect the model. Their values are then arbitrary, and the search
+  may stop at such a point.
+
+Where possible, avoid limits:
+
+- **Post-processing of equivalent solutions:** fit a phase freely and
+  reduce it afterwards, e.g., `phi % 1` or `phi % (2 * pi)`, depending on
+  its definition (`%` on doubles is never negative in Dart). A sine with a
+  negative amplitude equals one with a positive amplitude and the phase
+  shifted by half a period: flip the sign afterwards instead of limiting
+  the amplitude to `>= 0`. A width that only enters as `sigma * sigma`
+  can be fitted freely and reported as `sigma.abs()`.
+- **Reparameterization:** fit a positive parameter via its logarithm (the
+  model uses `exp(lnSigma)`); the edge at 0 moves to minus infinity. Write
+  a sine as `a * sin(2 * pi * x / per) + b * cos(2 * pi * x / per)`: the
+  model is linear in `a` and `b` and has no sign ambiguity; amplitude and
+  phase follow from `sqrt(a * a + b * b)` and `atan2(b, a)`. Fitting a
+  frequency instead of a period avoids the division by zero.
+- Keep limits for values where the model is undefined or impossible and
+  no convenient reparameterization exists.
+
+If a result lands on a limit, check whether the limit is necessary, fit
+again without it or from other start values, and compare the objectives.
+
 ## Using the minimizer directly
 
 If you already have a function to minimize, you can call Powell's method

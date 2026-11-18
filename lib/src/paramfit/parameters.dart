@@ -133,6 +133,12 @@ class Parameter {
 
   /// Sets the limits; null means no limit.
   ///
+  /// Limits are hard edges for the fit; use them sparingly, preferably only
+  /// where the model is undefined or impossible. Equivalent solutions (a
+  /// phase and the phase plus one period, the sign of an amplitude) are
+  /// better handled by post-processing or reparameterization; see the
+  /// section "Limits: use them sparingly" in the package README.
+  ///
   /// Throws an [ArgumentError] if a limit is NaN, if [lower] > [upper], or
   /// if the parameter is dependent and a limit is given.
   void setLimits(double? lower, double? upper) {

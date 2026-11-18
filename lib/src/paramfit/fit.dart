@@ -37,7 +37,10 @@ class FitResult {
 /// [minimizer] to minimize `model.objective(data)`.
 ///
 /// - The limits of the free parameters are passed to the minimizer as
-///   bounds (none are passed if no free parameter has limits).
+///   bounds (none are passed if no free parameter has limits). A
+///   parameter that ends exactly on a limit is not a regular estimate, and
+///   it may leave other parameters without influence on the model; see
+///   the section "Limits: use them sparingly" in the package README.
 /// - Afterwards, the parameters of the model hold the best fit; dependent
 ///   parameters follow their relations.
 /// - If the minimizer throws, the start values are restored and the
