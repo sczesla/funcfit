@@ -126,7 +126,7 @@ Future<void> main() async {
   print(r.status); // PowellStatus.absoluteToleranceReached
   print(r.value); // about [0.5, 0.25]: the minimum on the bound
   print(r.objective); // about 0.25
-  print(r.evaluations); // 917
+  print(r.evaluations); // 960
 }
 ```
 
@@ -143,7 +143,10 @@ Future<void> main() async {
   pseudo-Huber instead of absolute values).
 - **Bounds:** per variable, `null` for none. The function is never
   evaluated outside the bounds. A starting point outside them throws an
-  `ArgumentError`.
+  `ArgumentError`. Minima on a bound are found exactly. Before accepting
+  convergence there, the search checks the neighborhood just inside the
+  bound, so a parameter stuck on its bound (e.g., an amplitude at 0 that
+  makes the phase irrelevant) does not end the search.
 - **Convergence:** an iteration (one line search along every direction)
   that decreases the function by less than `aftol` (absolute) or `rftol`
   (relative) ends the search. `xtol` sets the precision of the line

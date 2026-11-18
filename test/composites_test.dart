@@ -198,8 +198,8 @@ void main() {
       final x = [0.0, 4.5, 5.0, 9.0];
       final got = prod.evaluate(x);
       for (int i = 0; i < x.length; i++) {
-        expect(got[i],
-            closeTo(line.evaluate(x)[i] * abs.evaluate(x)[i], 1e-12));
+        expect(
+            got[i], closeTo(line.evaluate(x)[i] * abs.evaluate(x)[i], 1e-12));
       }
       expect(prod.params.names,
           ["line.a", "line.b", "abs.depth", "abs.mu", "abs.sigma"]);

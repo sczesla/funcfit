@@ -223,11 +223,12 @@ void main() {
       expect(r.message, contains("50"));
     });
 
-    test('maxEvaluations with an objective that is always NaN', () async {
-      final r = await powell((p) => double.nan, [1.0, 2.0], maxEvaluations: 5);
+    test('maxEvaluations with an objective that is always infinite', () async {
+      final r =
+          await powell((p) => double.infinity, [1.0, 2.0], maxEvaluations: 5);
       expect(r.status, PowellStatus.maxEvaluationsReached);
       expect(r.value, [1.0, 2.0]);
-      expect(r.objective, isNaN);
+      expect(r.objective, double.infinity);
     });
 
     test('maxEvaluations large enough does not interfere', () async {
@@ -405,6 +406,90 @@ void main() {
           powell(f, [0.0, 0.0],
               lowerBounds: [1.0, null], upperBounds: [-1.0, null]),
           throwsArgumentError);
+    });
+  });
+
+  group('NaN and infinite objective values', () {
+    test('NaN at the starting point throws an ArgumentError', () async {
+      // Division by a parameter starting at 0, as in a model y = sin(x/per)
+      double f(List<double> p) => pow(sin(2 / p[0]) - 0.5, 2).toDouble();
+      await expectLater(
+          powell(f, [0.0]),
+          throwsA(isA<ArgumentError>()
+              .having((e) => e.message, "message", contains("NaN"))));
+    });
+
+    test('infinite everywhere: no crash, returns the start', () async {
+      final r =
+          await powell((p) => double.infinity, [1.0, 2.0], maxIterations: 5);
+      expect(r.value, [1.0, 2.0]);
+      expect(r.objective, double.infinity);
+    });
+
+    test('infinite at the start, finite elsewhere', () async {
+      double f(List<double> p) => p[0] == 0
+          ? double.infinity
+          : (pow(p[0] - 1, 2) + pow(p[1] - 2, 2)).toDouble();
+      final r = await powell(f, [0.0, 0.0]);
+      expect(r.objective, lessThan(1e-6));
+    });
+
+    test('NaN after the start is never accepted', () async {
+      double f(List<double> p) =>
+          p[0] > 1.5 ? double.nan : pow(p[0] - 1, 2).toDouble();
+      final r = await powell(f, [0.0]);
+      expect(r.converged, isTrue);
+      expect(r.value.single, closeTo(1, 1e-3));
+    });
+  });
+
+  group('degenerate points on a bound', () {
+    // Sine A·sin(2π(x/per + phi)) with A >= 0. Starting with the wrong
+    // phase, the first line search takes A to exactly 0, where period and
+    // phase have no influence: a stationary point, but not a minimum.
+    final x = [for (int i = 0; i < 200; i++) i / 20];
+    final y = [for (final xi in x) 2.5 * sin(2 * pi * (xi / 3.7 + 0.66))];
+    double chi2(List<double> p) {
+      double s = 0;
+      for (int i = 0; i < x.length; i++) {
+        final m = p[0] * sin(2 * pi * (x[i] / p[1] + p[2]));
+        s += (m - y[i]) * (m - y[i]);
+      }
+      return s;
+    }
+
+    test('amplitude on its bound does not stop the search', () async {
+      final r = await powell(chi2, [2, 3.7, 0.3],
+          lowerBounds: [0, 1e-3, null], rftol: 1e-10, aftol: 1e-10);
+      expect(r.converged, isTrue);
+      expect(r.objective, lessThan(1e-6));
+      expect(r.value[0], closeTo(2.5, 1e-3));
+      expect(r.value[1], closeTo(3.7, 1e-3));
+    });
+
+    test('a genuine minimum on a bound is returned exactly', () async {
+      // Free minimum at (-1, 2), constrained minimum at (0, 2)
+      double f(List<double> p) =>
+          (pow(p[0] + 1, 2) + pow(p[1] - 2, 2)).toDouble();
+      final r = await powell(f, [3.0, 0.0], lowerBounds: [0, null]);
+      expect(r.converged, isTrue);
+      expect(r.value[0], 0);
+      expect(r.value[1], closeTo(2, 1e-3));
+    });
+
+    test('upper bound and the step limited by narrow bounds', () async {
+      // Mirrored: amplitude -A with A <= 0, bounds [-1e-6, 0] for a
+      // parameter too narrow for the full probing step
+      double g(List<double> p) =>
+          chi2([-p[0], p[1], p[2]]) + pow(p[3] - 1e-6, 2).toDouble();
+      final r = await powell(g, [-2, 3.7, 0.3, 0],
+          lowerBounds: [null, 1e-3, null, -1e-6],
+          upperBounds: [0, null, null, 0],
+          rftol: 1e-10,
+          aftol: 1e-10);
+      expect(r.converged, isTrue);
+      expect(r.value[0], closeTo(-2.5, 1e-3));
+      expect(r.value[3], 0);
     });
   });
 }

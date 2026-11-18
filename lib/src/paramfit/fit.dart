@@ -44,8 +44,10 @@ class FitResult {
 ///   exception is rethrown.
 ///
 /// Throws an [ArgumentError] if the model has no free parameters, if the
-/// value of a free parameter lies outside its limits, or if a relation of a
-/// dependent parameter refers to a parameter outside the model.
+/// value of a free parameter lies outside its limits, if a relation of a
+/// dependent parameter refers to a parameter outside the model, or if the
+/// objective is NaN at the start values (e.g., a division by a parameter
+/// that starts at 0).
 Future<FitResult> fit<D>(Model<D> model, D data,
     {Minimizer minimizer = const Powell()}) async {
   final params = model.params;
@@ -79,6 +81,12 @@ Future<FitResult> fit<D>(Model<D> model, D data,
     }
   }
   final bounded = lower.any((b) => b != null) || upper.any((b) => b != null);
+
+  if (model.objective(data).isNaN) {
+    final values = [for (final n in names) "$n = ${params[n]}"].join(", ");
+    throw ArgumentError("The objective is NaN at the start values "
+        "($values); choose start values for which the model is defined");
+  }
 
   final MinimizerResult result;
   try {

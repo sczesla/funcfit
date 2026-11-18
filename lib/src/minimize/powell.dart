@@ -128,11 +128,21 @@ class _EvaluationLimitReached implements Exception {
 /// extrapolated point used to decide on replacing a direction is shortened
 /// to stay within them. Throws an [ArgumentError] if the lengths do not
 /// match [pInitial], if a bound is NaN, if a lower bound exceeds the upper
-/// one, or if [pInitial] is not within the bounds. Equal bounds fix a
+/// one, if [pInitial] is not within the bounds, or if [objective] returns
+/// NaN at [pInitial] (e.g., a division by a parameter starting at 0); the
+/// objective may be infinite there. Equal bounds fix a
 /// parameter. If the search converges at a bound after search directions
 /// were replaced, the directions are reset to the initial coordinate
 /// directions and convergence is only accepted with those, because the
-/// replaced directions may all be blocked by the bound.
+/// replaced directions may all be blocked by the bound. Before convergence
+/// on a bound is accepted, the parameters on the bound are moved inward by
+/// a small step (`xtol` times their [initialScale]) and one more sweep of
+/// line searches follows, the other parameters first. This finds better
+/// points where a parameter on its bound removes the influence of others
+/// (e.g., an amplitude at 0 makes phase and period irrelevant). Only a
+/// significantly better point is taken; otherwise the result stays
+/// exactly on the bound. No local method can rule out other non-optimal
+/// end points, so a check with other start values remains useful.
 ///
 /// The search stops without convergence after [maxIterations] iterations,
 /// after [maxEvaluations] evaluations of the objective (default: no limit),
@@ -341,6 +351,42 @@ Future<PowellResult> powell(
     return (p: pNew, f: fNew, failed: failed);
   }
 
+  /// Checks a point [p] converged on a bound for a better point nearby.
+  ///
+  /// At a bound, the remaining parameters can lose all influence (e.g., an
+  /// amplitude at 0 makes phase and period irrelevant): no single direction
+  /// decreases the objective, although a combined move would. The
+  /// parameters on a bound are moved inward by a small step, and one sweep
+  /// of line searches follows, first along the other parameters, then along
+  /// those moved. Returns the new point if it is significantly better than
+  /// [fp], otherwise null (and [p] is kept exactly on the bound).
+  ({Vector p, double f})? probeBound(Vector p, double fp) {
+    final q = Vector.fromList(p.toList());
+    final onBound = <int>[];
+    for (int i = 0; i < pn; i++) {
+      if (lb[i] == ub[i] || (p[i] != lb[i] && p[i] != ub[i])) continue;
+      final step =
+          min(xtol * (initialScale?[i] ?? 1.0).abs(), (ub[i] - lb[i]) / 2);
+      q[i] = p[i] == lb[i] ? lb[i] + step : ub[i] - step;
+      onBound.add(i);
+    }
+    if (onBound.isEmpty) return null;
+    final dirs = initialDirections();
+    Vector pq = q;
+    double fq = f(q.data);
+    for (final i in [
+      for (int i = 0; i < pn; i++)
+        if (!onBound.contains(i)) i,
+      ...onBound
+    ]) {
+      final r = lineMinimize(pq, fq, dirs[i], 0.1);
+      pq = r.p;
+      fq = r.f;
+    }
+    if (fq < fp && !isSmallChange(fp, fq)) return (p: pq, f: fq);
+    return null;
+  }
+
   String messageFor(PowellStatus status, int it) => switch (status) {
         PowellStatus.absoluteToleranceReached =>
           "Absolute convergence criterion reached after $it iterations",
@@ -370,6 +416,10 @@ Future<PowellResult> powell(
   try {
     Vector p0 = Vector.fromList(pInitial);
     double f0 = f(p0.data);
+    if (f0.isNaN) {
+      throw ArgumentError("The objective is NaN at the starting point "
+          "$pInitial; choose start values for which it is defined");
+    }
 
     for (iterations = 1; iterations <= maxIterations; iterations++) {
       // The sole purpose of this is to give the UI some time to update
@@ -407,17 +457,33 @@ Future<PowellResult> powell(
       }
 
       if (!lineSearchFailed) {
-        if (isAbsConverged(fi.first, fi.last)) {
-          return result(pr.last, fi.last, PowellStatus.absoluteToleranceReached,
-              iterations);
-        }
-        if (isRelConverged(fi.first, fi.last)) {
-          return result(pr.last, fi.last, PowellStatus.relativeToleranceReached,
-              iterations);
+        final status = isAbsConverged(fi.first, fi.last)
+            ? PowellStatus.absoluteToleranceReached
+            : isRelConverged(fi.first, fi.last)
+                ? PowellStatus.relativeToleranceReached
+                : null;
+        if (status != null) {
+          final probe =
+              bounded && atBound(pr.last) ? probeBound(pr.last, fi.last) : null;
+          if (probe == null) {
+            return result(pr.last, fi.last, status, iterations);
+          }
+          // A better point next to the bound: continue from there
+          xis = initialDirections();
+          directionsModified = false;
+          p0 = probe.p;
+          f0 = probe.f;
+          if (onIteration != null &&
+              !await onIteration(
+                  PowellProgress(iterations, evaluations, p0.data, f0))) {
+            return result(p0, f0, PowellStatus.stoppedByCallback, iterations);
+          }
+          continue;
         }
       }
 
-      // Direction with the largest decrease
+      // Direction with the largest decrease; none (-1) if no line search
+      // decreased the objective comparably (e.g., all values infinite)
       double delta = -double.infinity;
       int mMaxDecrease = -1;
       for (int m = 0; m < pn; m++) {
@@ -440,7 +506,8 @@ Future<PowellResult> powell(
         f3 = t > 0 ? f(clamp(pr.last + dir * t).data) : f2;
       }
 
-      if ((f3 >= f1) ||
+      if (mMaxDecrease < 0 ||
+          (f3 >= f1) ||
           ((f1 - 2 * f2 + f3) * pow(f1 - f2 - delta, 2) >=
               0.5 * delta * pow(f1 - f3, 2))) {
         // Keep the old directions; continue from the last point
@@ -467,13 +534,11 @@ Future<PowellResult> powell(
 
     return result(p0, f0, PowellStatus.maxIterationsReached, maxIterations);
   } on _EvaluationLimitReached {
-    // bestX is null only if the objective never returned a number < inf
+    // bestX is null only if the objective never returned a number < inf;
+    // then the start is returned (its value is infinite, never NaN)
     final x = bestX;
-    return result(
-        x == null ? Vector.fromList(pInitial) : Vector.fromList(x),
-        x == null ? double.nan : bestF,
-        PowellStatus.maxEvaluationsReached,
-        iterations);
+    return result(x == null ? Vector.fromList(pInitial) : Vector.fromList(x),
+        bestF, PowellStatus.maxEvaluationsReached, iterations);
   }
 }
 

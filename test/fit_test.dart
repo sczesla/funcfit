@@ -48,6 +48,17 @@ final _XY _data =
 
 /// Fake minimizer returning a fixed point; records its arguments; can
 /// throw after evaluating f, or refuse bounds.
+/// Objective (a/per - 1)² + per²; NaN for a = per = 0.
+class _Ratio extends Model<double> {
+  _Ratio() : super(["a", "per"]);
+
+  @override
+  double objective(double data) {
+    final q = this["a"] / this["per"] - 1;
+    return q * q + this["per"] * this["per"] + data;
+  }
+}
+
 class _FakeMinimizer implements Minimizer {
   _FakeMinimizer(this.answer,
       {this.throwAfterEvaluation = false, this.supportsBounds = true});
@@ -194,6 +205,19 @@ void main() {
   });
 
   group('fit checks', () {
+    test('objective NaN at the start values throws, naming the values',
+        () async {
+      final m = _Ratio(); // a and per start at 0: 0/0
+      await expectLater(
+          fit(m, 0.0),
+          throwsA(isA<ArgumentError>().having(
+              (e) => e.message, "message", contains("a = 0.0, per = 0.0"))));
+      expect(m["per"], 0);
+      m["per"] = 1;
+      final r = await fit(m, 0.0);
+      expect(r.converged, isTrue);
+    });
+
     test('start value outside the limits throws before evaluating', () async {
       final m = _Line();
       m["b"] = 3;
@@ -263,7 +287,7 @@ void main() {
           fit(m, _data,
               minimizer: _FakeMinimizer([0], throwAfterEvaluation: true)),
           throwsStateError);
-      expect(m.evaluations, 1);
+      expect(m.evaluations, 2); // start check of fit() + minimizer
       expect(m["b"], 2);
       expect(m["a"], 1);
     });
