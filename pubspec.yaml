@@ -1,7 +1,6 @@
 name: funcfit
 description: >-
-  Fitting models with named parameters (free, frozen, bounded, or related)
-  to data, on top of derivative-free minimization (Powell's method).
+  Numerical minimization and parameterized model fitting.
 version: 0.1.0
 repository: https://github.com/sczesla/funcfit
 
